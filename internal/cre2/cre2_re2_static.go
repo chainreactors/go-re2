@@ -4,6 +4,6 @@ package cre2
 
 /*
 #include "cre2.h"
-#cgo LDFLAGS: -L${SRCDIR}/lib/windows_amd64 -lre2_cre2 -static-libgcc -Wl,-Bstatic -lstdc++ -lwinpthread -Wl,-Bdynamic
+#cgo LDFLAGS: -L${SRCDIR}/lib/windows_amd64 -lre2_cre2 -Wl,-Bstatic -lstdc++ -lwinpthread -lgcc -lgcc_eh -Wl,-Bdynamic
 */
 import "C"
