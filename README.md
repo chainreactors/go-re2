@@ -112,6 +112,91 @@ On Mac start by installing [homebrew][9] including installation of the command l
 brew install re2
 ```
 
+### Static CGO (no runtime DLL dependencies)
+
+The `re2_static` build tag (used together with `re2_cgo`) links a pre-built
+RE2 + CRE2 static archive that is bundled inside this module. The C++ runtime
+(`libstdc++`, `libgcc`) is also statically linked, so the resulting binary has
+**zero C/C++ shared library dependencies** — it is a single-file executable.
+
+This is the recommended mode for release / distribution builds.
+
+```go
+// Build tags needed:
+//   re2_cgo re2_static
+```
+
+#### Supported platforms
+
+| Platform | Archive | Status |
+|----------|---------|--------|
+| `linux/amd64` | `internal/cre2/lib/linux_amd64/libre2_cre2.a` | Stable |
+| `windows/amd64` | `internal/cre2/lib/windows_amd64/libre2_cre2.a` | Stable |
+
+Archives are rebuilt automatically by CI ([rebuild-static.yml](.github/workflows/rebuild-static.yml))
+whenever `cre2.cpp`, `cre2.h`, or the build script changes, ensuring they stay
+ABI-compatible with the latest toolchain.
+
+The bundled RE2 version is **2023-03-01** (the final release before RE2 added
+its Abseil dependency), keeping archives small and self-contained.
+
+#### Building release binaries
+
+```bash
+# Linux — fully static, no libc/libstdc++ deps
+CGO_ENABLED=1 go build \
+  -tags "re2_cgo re2_static osusergo netgo" \
+  -ldflags "-s -w -linkmode external -extldflags '-static'" \
+  -o myapp .
+
+# Windows (MSYS2 MINGW64) — static RE2/C++ runtime
+CGO_ENABLED=1 go build \
+  -tags "re2_cgo re2_static" \
+  -ldflags "-s -w" \
+  -o myapp.exe .
+```
+
+#### CI testing
+
+For CI testing (where static linking is not required), you can use either mode:
+
+```yaml
+# Linux CI — use re2_static (pre-built archive, no extra packages needed)
+- run: go test -tags "re2_cgo re2_static" ./...
+
+# Windows CI — use re2_cgo with system libre2 (avoids MinGW ABI issues)
+- uses: msys2/setup-msys2@v2
+  with:
+    msystem: MINGW64
+    pacboy: gcc:p re2:p pkg-config:p go:p git:p
+- run: go test -tags "re2_cgo" ./...
+```
+
+#### Consuming from downstream projects
+
+Add a `replace` directive pointing to this fork:
+
+```
+replace github.com/wasilibs/go-re2 => github.com/chainreactors/go-re2 <version>
+```
+
+Then build with `-tags "re2_cgo re2_static"`. No `libre2-dev`, `g++`, or
+`pkg-config` needed — the archive is pre-built inside the module.
+
+#### Rebuilding archives
+
+Archives can be regenerated from source:
+
+```bash
+# Linux (native)
+./scripts/build-static.sh
+
+# Windows (MSYS2 MINGW64)
+bash scripts/build-static.sh
+# or
+pwsh scripts/build-static-windows.ps1
+```
+
 ### TinyGo
 
 This project began as a way to use re2 with TinyGo WASI projects. However, recent versions of re2 have reworked
