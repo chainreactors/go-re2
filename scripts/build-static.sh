@@ -32,6 +32,13 @@ OUTPUT_DIR="$CRE2_DIR/lib/$PLATFORM"
 CXX="${CXX:-g++}"
 AR="${AR:-ar}"
 
+# On Windows (MinGW), disable emulated TLS to avoid __emutls ABI issues
+# between different GCC versions. Uses native Windows TLS instead.
+EXTRA_CXXFLAGS=""
+case "$PLATFORM" in
+    windows_*) EXTRA_CXXFLAGS="-fno-emulated-tls" ;;
+esac
+
 echo "Building RE2 $RE2_VERSION static archive for $PLATFORM"
 
 TMPDIR="$(mktemp -d)"
@@ -46,11 +53,11 @@ mkdir -p "$TMPDIR/build"
 for f in "$RE2_SRC"/re2/*.cc "$RE2_SRC"/util/rune.cc "$RE2_SRC"/util/strutil.cc; do
     [ -f "$f" ] || continue
     OBJ="$TMPDIR/build/$(basename "$f" .cc).o"
-    $CXX -std=c++17 -O2 -DNDEBUG -fPIC -I"$RE2_SRC" -c "$f" -o "$OBJ"
+    $CXX -std=c++17 -O2 -DNDEBUG -fPIC $EXTRA_CXXFLAGS -I"$RE2_SRC" -c "$f" -o "$OBJ"
 done
 
 # Compile CRE2 wrapper
-$CXX -std=c++17 -O2 -DNDEBUG -fPIC \
+$CXX -std=c++17 -O2 -DNDEBUG -fPIC $EXTRA_CXXFLAGS \
     -I"$RE2_SRC" -I"$CRE2_DIR" \
     -c "$CRE2_DIR/cre2.cpp" \
     -o "$TMPDIR/build/cre2.o"
