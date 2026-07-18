@@ -37,7 +37,9 @@ jobs:
 
       - name: Install zig (Linux)
         if: runner.os == 'Linux'
-        run: pip install ziglang
+        run: |
+          pip install ziglang
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Build static archive (Linux)
         if: runner.os == 'Linux'
