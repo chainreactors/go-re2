@@ -4,7 +4,7 @@
 # Usage:
 #   ./scripts/build-static.sh [PLATFORM]
 #
-# Requires: g++ (or CXX), ar, curl/git
+# Requires: zig (preferred) or g++/gcc, ar, curl
 
 set -euo pipefail
 
@@ -25,10 +25,28 @@ esac
 PLATFORM="${1:-$HOST_PLATFORM}"
 OUTPUT_DIR="$CRE2_DIR/lib/$PLATFORM"
 
+# Use zig cc to pin glibc version — eliminates __isoc23_* symbols and
+# isoc23_compat.c entirely. Set NO_ZIG=1 to force system gcc/g++.
+USE_ZIG=""
+if command -v zig >/dev/null 2>&1 && [ -z "${NO_ZIG:-}" ]; then
+    case "$PLATFORM" in
+        linux_amd64)  ZIG_TARGET="x86_64-linux-gnu.2.17" ;;
+        linux_arm64)  ZIG_TARGET="aarch64-linux-gnu.2.17" ;;
+        *)            ZIG_TARGET="" ;;
+    esac
+    if [ -n "$ZIG_TARGET" ]; then
+        CXX="${CXX:-zig c++ -target $ZIG_TARGET}"
+        CC="${CC:-zig cc -target $ZIG_TARGET}"
+        AR="${AR:-zig ar}"
+        USE_ZIG=1
+    fi
+fi
 CXX="${CXX:-g++}"
+CC="${CC:-gcc}"
 AR="${AR:-ar}"
 
 echo "Building RE2 $RE2_VERSION static archive for $PLATFORM"
+echo "  CXX=$CXX"
 
 TMPDIR="$(mktemp -d)"
 trap 'rm -rf "$TMPDIR"' EXIT
@@ -48,10 +66,10 @@ $CXX -std=c++17 -O2 -DNDEBUG -fPIC \
     -c "$CRE2_DIR/cre2.cpp" \
     -o "$TMPDIR/build/cre2.o"
 
-# glibc compat: on glibc >=2.38, gcc emits __isoc23_strtol calls; bundle weak
-# fallbacks so the archive links on older glibc too.
-if [ "$PLATFORM" = "linux_amd64" ] || [ "$PLATFORM" = "linux_arm64" ]; then
-    ${CC:-gcc} -O2 -fPIC -c "$CRE2_DIR/isoc23_compat.c" -o "$TMPDIR/build/isoc23_compat.o"
+# Without zig, system gcc on glibc >=2.38 emits __isoc23_strtol calls.
+# Bundle weak fallbacks so the archive still links on older glibc.
+if [ -z "$USE_ZIG" ] && { [ "$PLATFORM" = "linux_amd64" ] || [ "$PLATFORM" = "linux_arm64" ]; }; then
+    $CC -O2 -fPIC -c "$CRE2_DIR/isoc23_compat.c" -o "$TMPDIR/build/isoc23_compat.o"
 fi
 
 mkdir -p "$OUTPUT_DIR"
