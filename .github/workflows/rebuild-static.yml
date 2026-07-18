@@ -35,10 +35,6 @@ jobs:
           update: true
           pacboy: gcc:p
 
-      - name: Install zig (Linux)
-        if: runner.os == 'Linux'
-        uses: mlugg/setup-zig@v2
-
       - name: Build static archive (Linux)
         if: runner.os == 'Linux'
         run: ./scripts/build-static.sh ${{ matrix.platform }}
