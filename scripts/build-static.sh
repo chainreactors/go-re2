@@ -74,7 +74,7 @@ $CXX -std=c++17 -O2 -DNDEBUG -fPIC \
 # glibc compat: on glibc >=2.38, gcc emits __isoc23_strtol calls; bundle weak
 # fallbacks so the archive links on older glibc too.
 if [ "$PLATFORM" = "linux_amd64" ] || [ "$PLATFORM" = "linux_arm64" ]; then
-    ${CC:-gcc} -O2 -fPIC -c "$CRE2_DIR/isoc23_compat.c" -o "$TMPDIR/build/isoc23_compat.o"
+    ${CC:-gcc} -O2 -fPIC -c "$CRE2_DIR/isoc23_compat_linux.c" -o "$TMPDIR/build/isoc23_compat.o"
 fi
 
 mkdir -p "$OUTPUT_DIR"

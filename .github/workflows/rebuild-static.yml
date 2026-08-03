@@ -55,13 +55,17 @@ jobs:
         shell: msys2 {0}
         run: bash scripts/build-static.sh ${{ matrix.platform }}
 
+      - name: Expose MinGW toolchain to native Go
+        if: matrix.shell == 'msys2'
+        shell: pwsh
+        run: Add-Content -Path $env:GITHUB_PATH -Value 'C:\msys64\mingw64\bin'
+
       - name: Verify static backend (Unix)
         if: matrix.shell != 'msys2'
         run: go test -tags "re2_cgo re2_static" ./...
 
       - name: Verify static backend (Windows)
         if: matrix.shell == 'msys2'
-        shell: msys2 {0}
         run: go test -tags "re2_cgo re2_static" ./...
 
       - uses: actions/upload-artifact@v4
