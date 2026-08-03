@@ -65,7 +65,9 @@ jobs:
 
       - name: Verify static backend (Unix)
         if: matrix.shell != 'msys2'
-        run: go test -tags "re2_cgo re2_static" ./...
+        run: |
+          go clean -cache
+          go test -tags "re2_cgo re2_static" ./...
 
       - name: Verify static backend (Windows)
         if: matrix.shell == 'msys2'
@@ -82,6 +84,7 @@ jobs:
           gcc --version
           command -v g++
           g++ --version
+          go clean -cache
           go test -tags "re2_cgo re2_static" ./...
 
       - uses: actions/upload-artifact@v4
