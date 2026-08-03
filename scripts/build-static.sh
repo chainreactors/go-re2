@@ -78,6 +78,7 @@ if [ "$PLATFORM" = "linux_amd64" ] || [ "$PLATFORM" = "linux_arm64" ]; then
 fi
 
 mkdir -p "$OUTPUT_DIR"
+rm -f "$OUTPUT_DIR/libre2_cre2.a"
 $AR rcs "$OUTPUT_DIR/libre2_cre2.a" "$TMPDIR"/build/*.o
 
 cp "$RE2_SRC/LICENSE" "$OUTPUT_DIR/RE2_LICENSE"
