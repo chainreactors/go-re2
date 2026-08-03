@@ -38,6 +38,13 @@ jobs:
         with:
           go-version-file: go.work
 
+      - name: Locate setup-go toolchain (Windows)
+        if: matrix.shell == 'msys2'
+        shell: pwsh
+        run: |
+          $goBin = Split-Path -Parent (Get-Command go).Source
+          Add-Content -Path $env:GITHUB_ENV -Value "SETUP_GO_BIN=$goBin"
+
       - name: Setup MSYS2 (Windows)
         if: matrix.shell == 'msys2'
         uses: msys2/setup-msys2@v2
@@ -67,6 +74,7 @@ jobs:
           CXX: g++
           CGO_ENABLED: '1'
         run: |
+          export PATH="$(cygpath -u "$SETUP_GO_BIN"):$PATH"
           command -v go
           go version
           command -v gcc
