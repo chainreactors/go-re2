@@ -6,6 +6,7 @@ on:
     paths:
       - 'internal/cre2/cre2.cpp'
       - 'internal/cre2/cre2.h'
+      - 'internal/cre2/cre2_re2_static*.go'
       - 'scripts/build-static*'
       - '.github/workflows/rebuild-static.yml'
   workflow_dispatch:
