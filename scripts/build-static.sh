@@ -71,6 +71,22 @@ $CXX -std=c++17 -O2 -DNDEBUG -fPIC \
     -c "$CRE2_DIR/cre2.cpp" \
     -o "$TMPDIR/build/cre2.o"
 
+# MinGW's std::call_once ABI changed between GCC 15 and 16. Bundle the
+# matching libstdc++ implementation object so the archive remains linkable
+# when the downstream CGO compiler is a different MinGW GCC release.
+if [ "$PLATFORM" = "windows_amd64" ]; then
+    LIBSTDCXX="$($CXX -print-file-name=libstdc++.a)"
+    if [ ! -f "$LIBSTDCXX" ]; then
+        echo "unable to locate static libstdc++: $LIBSTDCXX" >&2
+        exit 1
+    fi
+    (
+        cd "$TMPDIR/build"
+        "$AR" x "$LIBSTDCXX" mutex.o
+        mv mutex.o libstdcxx_mutex.o
+    )
+fi
+
 # glibc compat: on glibc >=2.38, gcc emits __isoc23_strtol calls; bundle weak
 # fallbacks so the archive links on older glibc too.
 if [ "$PLATFORM" = "linux_amd64" ] || [ "$PLATFORM" = "linux_arm64" ]; then
@@ -82,5 +98,11 @@ rm -f "$OUTPUT_DIR/libre2_cre2.a"
 $AR rcs "$OUTPUT_DIR/libre2_cre2.a" "$TMPDIR"/build/*.o
 
 cp "$RE2_SRC/LICENSE" "$OUTPUT_DIR/RE2_LICENSE"
+
+if [ "$PLATFORM" = "windows_amd64" ]; then
+    CXX_PREFIX="$(dirname "$(dirname "$(command -v "$CXX")")")"
+    cp "$CXX_PREFIX/share/licenses/gcc-libs/COPYING3" "$OUTPUT_DIR/GCC_COPYING3"
+    cp "$CXX_PREFIX/share/licenses/gcc-libs/COPYING.RUNTIME" "$OUTPUT_DIR/GCC_COPYING.RUNTIME"
+fi
 
 echo "Built: $OUTPUT_DIR/libre2_cre2.a ($(du -h "$OUTPUT_DIR/libre2_cre2.a" | cut -f1))"

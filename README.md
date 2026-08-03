@@ -140,6 +140,9 @@ Archives are rebuilt automatically by CI ([rebuild-static.yml](.github/workflows
 whenever `cre2.cpp`, `cre2.h`, or the build script changes, ensuring they stay
 ABI-compatible with the latest toolchain.
 
+On Windows, the archive includes the build-time libstdc++ `std::call_once`
+implementation so it can be consumed across the MinGW GCC 15/16 ABI change.
+
 The bundled RE2 version is **2023-03-01** (the final release before RE2 added
 its Abseil dependency), keeping archives small and self-contained.
 

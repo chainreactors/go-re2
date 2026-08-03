@@ -41,6 +41,11 @@ Archives use RE2 **2023-03-01**, the final release before the Abseil
 dependency was added. This keeps archives small (~1 MB) and avoids MinGW
 pthread shutdown issues that Abseil can trigger.
 
+The Windows archive also contains the `mutex.o` implementation from the
+build-time libstdc++. This isolates RE2's `std::call_once` ABI from MinGW GCC
+version changes (notably the GCC 15 to 16 transition); the remaining GNU C++
+runtime is still selected and linked statically by CGO.
+
 ### CI auto-rebuild
 
 The [rebuild-static.yml](.github/workflows/rebuild-static.yml) workflow
