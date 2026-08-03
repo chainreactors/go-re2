@@ -16,16 +16,27 @@ permissions:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             platform: linux_amd64
-          - os: windows-latest
+          - os: ubuntu-24.04-arm
+            platform: linux_arm64
+          - os: macos-15-intel
+            platform: darwin_amd64
+          - os: macos-15
+            platform: darwin_arm64
+          - os: windows-2022
             platform: windows_amd64
             shell: msys2
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.work
 
       - name: Setup MSYS2 (Windows)
         if: matrix.shell == 'msys2'
@@ -35,14 +46,23 @@ jobs:
           update: true
           pacboy: gcc:p
 
-      - name: Build static archive (Linux)
-        if: runner.os == 'Linux'
+      - name: Build static archive (Unix)
+        if: matrix.shell != 'msys2'
         run: ./scripts/build-static.sh ${{ matrix.platform }}
 
       - name: Build static archive (Windows)
         if: matrix.shell == 'msys2'
         shell: msys2 {0}
         run: bash scripts/build-static.sh ${{ matrix.platform }}
+
+      - name: Verify static backend (Unix)
+        if: matrix.shell != 'msys2'
+        run: go test -tags "re2_cgo re2_static" ./...
+
+      - name: Verify static backend (Windows)
+        if: matrix.shell == 'msys2'
+        shell: msys2 {0}
+        run: go test -tags "re2_cgo re2_static" ./...
 
       - uses: actions/upload-artifact@v4
         with:

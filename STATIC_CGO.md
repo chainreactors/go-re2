@@ -25,8 +25,13 @@ internal/cre2/
 ├── cre2_re2_cgo.go              # re2_cgo && !re2_static → pkg-config
 ├── cre2_re2_static.go           # re2_cgo && re2_static && windows/amd64
 ├── cre2_re2_static_linux_amd64.go  # re2_cgo && re2_static && linux/amd64
+├── cre2_re2_static_linux_arm64.go  # re2_cgo && re2_static && linux/arm64
+├── cre2_re2_static_darwin.go       # re2_cgo && re2_static && darwin/amd64|arm64
 └── lib/
     ├── linux_amd64/libre2_cre2.a
+    ├── linux_arm64/libre2_cre2.a
+    ├── darwin_amd64/libre2_cre2.a
+    ├── darwin_arm64/libre2_cre2.a
     └── windows_amd64/libre2_cre2.a
 ```
 
@@ -40,8 +45,10 @@ pthread shutdown issues that Abseil can trigger.
 
 The [rebuild-static.yml](.github/workflows/rebuild-static.yml) workflow
 triggers on changes to `cre2.cpp`, `cre2.h`, or `scripts/build-static*`.
-It builds archives on the CI runner's native toolchain (Ubuntu GCC for Linux,
-MSYS2 MinGW GCC for Windows) and auto-commits the updated `.a` files.
+It builds each archive on a matching native CI runner (Ubuntu GCC, Apple
+Clang, or MSYS2 MinGW GCC) and auto-commits the updated `.a` files. Native
+toolchains are intentional: `zig c++` uses libc++ and is not ABI-compatible
+with Linux/Windows consumers that link libstdc++.
 
 ### Adding a new platform
 

@@ -1,10 +1,10 @@
 #!/bin/bash
-# Build RE2 + CRE2 as a single static archive for the current platform.
+# Build RE2 + CRE2 as a single static archive for the current native platform.
 #
 # Usage:
 #   ./scripts/build-static.sh [PLATFORM]
 #
-# Requires: g++ (or CXX), ar, curl/git
+# Requires: g++/clang++ (or CXX), ar, curl
 
 set -euo pipefail
 
@@ -23,17 +23,40 @@ case "$(uname -s)-$(uname -m)" in
 esac
 
 PLATFORM="${1:-$HOST_PLATFORM}"
-OUTPUT_DIR="$CRE2_DIR/lib/$PLATFORM"
+OUTPUT_ROOT="${OUTPUT_ROOT:-$CRE2_DIR/lib}"
+OUTPUT_DIR="$OUTPUT_ROOT/$PLATFORM"
 
-CXX="${CXX:-g++}"
+if [ "$HOST_PLATFORM" = "unknown" ]; then
+    echo "unsupported build host: $(uname -s)/$(uname -m)" >&2
+    exit 1
+fi
+if [ "$PLATFORM" != "$HOST_PLATFORM" ] && [ -z "${ALLOW_CROSS:-}" ]; then
+    echo "refusing to publish a native archive for $PLATFORM from $HOST_PLATFORM" >&2
+    echo "run this script on the matching native runner, or set ALLOW_CROSS=1 with an ABI-compatible CXX/CC toolchain" >&2
+    exit 1
+fi
+
+case "$HOST_PLATFORM" in
+    darwin_*) DEFAULT_CXX="clang++" ;;
+    *)        DEFAULT_CXX="g++" ;;
+esac
+CXX="${CXX:-$DEFAULT_CXX}"
 AR="${AR:-ar}"
 
 echo "Building RE2 $RE2_VERSION static archive for $PLATFORM"
+echo "  host=$HOST_PLATFORM"
+echo "  CXX=$CXX"
+echo "  AR=$AR"
 
 TMPDIR="$(mktemp -d)"
 trap 'rm -rf "$TMPDIR"' EXIT
 
-curl -sL "https://github.com/google/re2/archive/refs/tags/${RE2_VERSION}.tar.gz" | tar xz -C "$TMPDIR"
+SOURCE_ARCHIVE="$TMPDIR/re2-${RE2_VERSION}.tar.gz"
+curl --fail --location --silent --show-error \
+    --retry 5 --retry-all-errors \
+    --output "$SOURCE_ARCHIVE" \
+    "https://github.com/google/re2/archive/refs/tags/${RE2_VERSION}.tar.gz"
+tar xzf "$SOURCE_ARCHIVE" -C "$TMPDIR"
 RE2_SRC="$TMPDIR/re2-${RE2_VERSION}"
 
 mkdir -p "$TMPDIR/build"

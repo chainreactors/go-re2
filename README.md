@@ -115,9 +115,9 @@ brew install re2
 ### Static CGO (no runtime DLL dependencies)
 
 The `re2_static` build tag (used together with `re2_cgo`) links a pre-built
-RE2 + CRE2 static archive that is bundled inside this module. The C++ runtime
-(`libstdc++`, `libgcc`) is also statically linked, so the resulting binary has
-**zero C/C++ shared library dependencies** — it is a single-file executable.
+RE2 + CRE2 static archive that is bundled inside this module. Linux and Windows
+link the required GNU C++ runtime statically; macOS links the platform `libc++`
+runtime supplied by the OS.
 
 This is the recommended mode for release / distribution builds.
 
@@ -131,6 +131,9 @@ This is the recommended mode for release / distribution builds.
 | Platform | Archive | Status |
 |----------|---------|--------|
 | `linux/amd64` | `internal/cre2/lib/linux_amd64/libre2_cre2.a` | Stable |
+| `linux/arm64` | `internal/cre2/lib/linux_arm64/libre2_cre2.a` | Stable |
+| `darwin/amd64` | `internal/cre2/lib/darwin_amd64/libre2_cre2.a` | Stable |
+| `darwin/arm64` | `internal/cre2/lib/darwin_arm64/libre2_cre2.a` | Stable |
 | `windows/amd64` | `internal/cre2/lib/windows_amd64/libre2_cre2.a` | Stable |
 
 Archives are rebuilt automatically by CI ([rebuild-static.yml](.github/workflows/rebuild-static.yml))
@@ -164,12 +167,12 @@ For CI testing (where static linking is not required), you can use either mode:
 # Linux CI — use re2_static (pre-built archive, no extra packages needed)
 - run: go test -tags "re2_cgo re2_static" ./...
 
-# Windows CI — use re2_cgo with system libre2 (avoids MinGW ABI issues)
+# Windows CI — use the archive built by the matching native MinGW runner
 - uses: msys2/setup-msys2@v2
   with:
     msystem: MINGW64
-    pacboy: gcc:p re2:p pkg-config:p go:p git:p
-- run: go test -tags "re2_cgo" ./...
+    pacboy: gcc:p go:p git:p
+- run: go test -tags "re2_cgo re2_static" ./...
 ```
 
 #### Consuming from downstream projects
@@ -188,7 +191,7 @@ Then build with `-tags "re2_cgo re2_static"`. No `libre2-dev`, `g++`, or
 Archives can be regenerated from source:
 
 ```bash
-# Linux (native)
+# Linux/macOS (native runner matching GOOS/GOARCH)
 ./scripts/build-static.sh
 
 # Windows (MSYS2 MINGW64)
